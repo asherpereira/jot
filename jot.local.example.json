@@ -1,0 +1,4 @@
+{
+  "JOT_RELAY_URL": "http://localhost:8787",
+  "JOT_ACCESS_TOKEN": "replace-with-your-personal-relay-token"
+}

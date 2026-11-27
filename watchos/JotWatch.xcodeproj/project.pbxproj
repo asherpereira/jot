@@ -1,0 +1,159 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {};
+	objectVersion = 54;
+	objects = {
+		0DBACB4B6653FE59CB954949 /* JotWatchApp.swift */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.swift; path = JotWatchApp.swift; sourceTree = "<group>";
+		};
+		5B1C23BC4B247A6A286AE57E /* JotWatchApp.swift build */ = {
+			isa = PBXBuildFile;
+			fileRef = 0DBACB4B6653FE59CB954949;
+		};
+		67A2D81FF882F76FBE27638C /* Assets.xcassets */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>";
+		};
+		A6C4B50532CD5D45BC3447D7 /* Assets.xcassets build */ = {
+			isa = PBXBuildFile;
+			fileRef = 67A2D81FF882F76FBE27638C;
+		};
+		1FBCACC159B54FBCE8F36E0E /* JotWatch.app */ = {
+			isa = PBXFileReference;
+			explicitFileType = wrapper.application; includeInIndex = 0; path = JotWatch.app; sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		5C89EAF612ED0530861C3F7E /* main */ = {
+			isa = PBXGroup;
+			children = (6B900E655A52ECF897AAF3A9, 63140168B7B2EBE5F1B01B09, );  sourceTree = "<group>";
+		};
+		63140168B7B2EBE5F1B01B09 /* Products */ = {
+			isa = PBXGroup;
+			children = (1FBCACC159B54FBCE8F36E0E, ); name = Products; sourceTree = "<group>";
+		};
+		6B900E655A52ECF897AAF3A9 /* JotWatch */ = {
+			isa = PBXGroup;
+			children = (0DBACB4B6653FE59CB954949, 67A2D81FF882F76FBE27638C, ); path = JotWatch; sourceTree = "<group>";
+		};
+		2B98E0AF93751D5C653DB767 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647; files = (5B1C23BC4B247A6A286AE57E, ); runOnlyForDeploymentPostprocessing = 0;
+		};
+		83435ACE5040575C181B1CAE /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647; files = (A6C4B50532CD5D45BC3447D7, ); runOnlyForDeploymentPostprocessing = 0;
+		};
+		CF402CC4116A5FCCC1323CF4 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0;
+		};
+		EA0051CA82A5CEE4B29767BC /* Project Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		787A5D5D400433A8D2F30775 /* Target Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				SDKROOT = watchos;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_WKApplication = YES;
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = au.com.asherpereira.jot;
+				INFOPLIST_KEY_CFBundleDisplayName = Jot;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				PRODUCT_BUNDLE_IDENTIFIER = au.com.asherpereira.jot.watchkitapp;
+				PRODUCT_NAME = JotWatch;
+				SKIP_INSTALL = YES;
+				CODE_SIGN_STYLE = Automatic;
+				MARKETING_VERSION = 0.1.0;
+				CURRENT_PROJECT_VERSION = 1;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		9909094352C529018F90187E /* Project Profile */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Profile;
+		};
+		2E243BD191447320FF5C2144 /* Target Profile */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				SDKROOT = watchos;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_WKApplication = YES;
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = au.com.asherpereira.jot;
+				INFOPLIST_KEY_CFBundleDisplayName = Jot;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				PRODUCT_BUNDLE_IDENTIFIER = au.com.asherpereira.jot.watchkitapp;
+				PRODUCT_NAME = JotWatch;
+				SKIP_INSTALL = YES;
+				CODE_SIGN_STYLE = Automatic;
+				MARKETING_VERSION = 0.1.0;
+				CURRENT_PROJECT_VERSION = 1;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+			};
+			name = Profile;
+		};
+		CACDD0CAA2208B7B125FE5A8 /* Project Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		EC1208A5316BC8E310F5CD89 /* Target Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				SDKROOT = watchos;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_WKApplication = YES;
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = au.com.asherpereira.jot;
+				INFOPLIST_KEY_CFBundleDisplayName = Jot;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				PRODUCT_BUNDLE_IDENTIFIER = au.com.asherpereira.jot.watchkitapp;
+				PRODUCT_NAME = JotWatch;
+				SKIP_INSTALL = YES;
+				CODE_SIGN_STYLE = Automatic;
+				MARKETING_VERSION = 0.1.0;
+				CURRENT_PROJECT_VERSION = 1;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+			};
+			name = Release;
+		};
+		E81EA3117B768D5763EE0965 /* Project configs */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (EA0051CA82A5CEE4B29767BC, 9909094352C529018F90187E, CACDD0CAA2208B7B125FE5A8, ); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release;
+		};
+		697FE623C8D7D80EA9BE6F11 /* Target configs */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (787A5D5D400433A8D2F30775, 2E243BD191447320FF5C2144, EC1208A5316BC8E310F5CD89, ); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release;
+		};
+		6245CD4AFCF9023E078680A4 /* Watch target */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 697FE623C8D7D80EA9BE6F11; buildPhases = (2B98E0AF93751D5C653DB767, CF402CC4116A5FCCC1323CF4, 83435ACE5040575C181B1CAE, ); buildRules = (); dependencies = (); name = JotWatch; productName = JotWatch; productReference = 1FBCACC159B54FBCE8F36E0E; productType = "com.apple.product-type.application";
+		};
+		1264AAB5D1C47258392D68A3 /* Watch project */ = {
+			isa = PBXProject;
+			attributes = {LastUpgradeCheck = 1600; }; buildConfigurationList = E81EA3117B768D5763EE0965; compatibilityVersion = "Xcode 12.0"; developmentRegion = en; hasScannedForEncodings = 0; knownRegions = (en, Base); mainGroup = 5C89EAF612ED0530861C3F7E; productRefGroup = 63140168B7B2EBE5F1B01B09; projectDirPath = ""; projectRoot = ""; targets = (6245CD4AFCF9023E078680A4, );
+		};
+	};
+	rootObject = 1264AAB5D1C47258392D68A3;
+}

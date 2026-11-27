@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "title": "Maths homework",
+  "subject": "Maths",
+  "dueDate": "2026-11-27",
+  "dueTime": null,
+  "estimateMinutes": 60,
+  "priority": "normal",
+  "notes": "",
+  "subtasks": [],
+  "afterCompletion": ["Upload all my work"]
+}

@@ -8,6 +8,13 @@ import 'capture.dart';
 
 class Homework {
   Homework(this.id, this.draft, this.done, this.checked, this.acknowledged);
+  factory Homework.fromRow(QueryRow row) => Homework(
+    row.read<int>('id'),
+    CaptureDraft.fromJson(jsonDecode(row.read<String>('draft'))),
+    row.read<int>('done') == 1,
+    Set<String>.from(jsonDecode(row.read<String>('checked'))),
+    Set<String>.from(jsonDecode(row.read<String>('acknowledged'))),
+  );
   final int id;
   final CaptureDraft draft;
   final bool done;
@@ -51,21 +58,7 @@ class JotStore extends GeneratedDatabase {
 
   Future<List<Homework>> tasks() async {
     final rows = await customSelect('SELECT * FROM homework ORDER BY id').get();
-    final items = rows
-        .map(
-          (r) => Homework(
-            r.read<int>('id'),
-            CaptureDraft.fromJson(
-              jsonDecode(r.read<String>('draft')) as Map<String, dynamic>,
-            ),
-            r.read<int>('done') == 1,
-            Set<String>.from(jsonDecode(r.read<String>('checked')) as List),
-            Set<String>.from(
-              jsonDecode(r.read<String>('acknowledged')) as List,
-            ),
-          ),
-        )
-        .toList();
+    final items = rows.map(Homework.fromRow).toList();
     items.sort((a, b) {
       final byDate = (a.draft.dueDate ?? '9999').compareTo(
         b.draft.dueDate ?? '9999',
@@ -84,16 +77,40 @@ class JotStore extends GeneratedDatabase {
   }
 
   Future<void> save(CaptureDraft draft, [int? id]) async {
-    final payload = jsonEncode(CaptureDraft.fromJson(draft.toJson()).toJson());
+    final next = CaptureDraft.fromJson(draft.toJson());
+    final payload = jsonEncode(next.toJson());
     if (id == null) {
       await customStatement('INSERT INTO homework(draft) VALUES (?)', [
         payload,
       ]);
     } else {
-      await customStatement('UPDATE homework SET draft = ? WHERE id = ?', [
-        payload,
-        id,
-      ]);
+      await transaction(() async {
+        final row = await customSelect(
+          'SELECT * FROM homework WHERE id = ?',
+          variables: [Variable.withInt(id)],
+        ).getSingle();
+        final previous = Homework.fromRow(row);
+        // Older versions retained checkmarks for labels removed in past edits.
+        final checked = next.subtasks.where(
+          (step) =>
+              previous.draft.subtasks.contains(step) &&
+              previous.checked.contains(step),
+        );
+        final acknowledged = next.afterCompletion.where(
+          (step) =>
+              previous.draft.afterCompletion.contains(step) &&
+              previous.acknowledged.contains(step),
+        );
+        await customStatement(
+          'UPDATE homework SET draft = ?, checked = ?, acknowledged = ? WHERE id = ?',
+          [
+            payload,
+            jsonEncode(checked.toList()),
+            jsonEncode(acknowledged.toList()),
+            id,
+          ],
+        );
+      });
     }
   }
 
@@ -142,8 +159,9 @@ class JotStore extends GeneratedDatabase {
 
   Future<void> applyWatch(Map<String, dynamic> action) => transaction(() async {
     final id = action['id'];
-    if (id is! String || id.isEmpty)
+    if (id is! String || id.isEmpty) {
       throw const FormatException('Missing watch action ID');
+    }
     final receipt = await customSelect(
       'SELECT id FROM watch_receipt WHERE id = ?',
       variables: [Variable.withString(id)],
@@ -151,11 +169,15 @@ class JotStore extends GeneratedDatabase {
     if (receipt != null) return;
     if (action['kind'] == 'capture') {
       final text = action['text'];
-      if (text is! String || text.trim().isEmpty || text.length > 2000)
+      if (text is! String || text.trim().isEmpty || text.runes.length > 2000) {
         throw const FormatException('Invalid watch capture');
+      }
+      final localDate = action['localDate'];
+      if (localDate != null && localDate is! String) {
+        throw const FormatException('Invalid watch capture date');
+      }
       final day =
-          DateTime.tryParse(action['localDate'] as String? ?? '') ??
-          DateTime.now();
+          DateTime.tryParse(localDate as String? ?? '') ?? DateTime.now();
       await save(basicCapture(text, day));
     } else if (action['kind'] == 'complete') {
       final taskId = action['taskId'];

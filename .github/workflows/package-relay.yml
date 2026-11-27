@@ -1,0 +1,51 @@
+name: Gemini relay download
+on:
+  push:
+    branches: [main, build/platform-downloads]
+    paths:
+      - '.github/workflows/package-relay.yml'
+      - 'server/**'
+      - 'contracts/**'
+  pull_request:
+    branches: [main, build/platform-downloads]
+    paths:
+      - '.github/workflows/package-relay.yml'
+      - 'server/**'
+      - 'contracts/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  relay:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install and verify the portable relay
+        working-directory: server
+        run: |
+          npm ci --omit=dev --ignore-scripts
+          npm test
+      - name: Package with runtime dependencies
+        run: |
+          mkdir -p dist/Jot-Relay/server dist/Jot-Relay/contracts
+          cp server/index.mjs server/capture.mjs server/package*.json dist/Jot-Relay/server/
+          cp -R server/node_modules dist/Jot-Relay/server/
+          cp contracts/capture-v1.schema.json dist/Jot-Relay/contracts/
+          cp server/.env.example dist/Jot-Relay/server/env.example
+          cp server/portable/* dist/Jot-Relay/
+          chmod +x dist/Jot-Relay/Start.command
+          (cd dist && zip -q -r Jot-Relay.zip Jot-Relay)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Jot-Gemini-Relay
+          path: dist/Jot-Relay.zip
+          if-no-files-found: error
+          retention-days: 90

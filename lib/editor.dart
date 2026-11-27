@@ -10,6 +10,20 @@ class TaskEditor extends StatefulWidget {
 
 class _TaskEditorState extends State<TaskEditor> {
   final capture = TextEditingController();
+  final relay = TextEditingController(text: relayAddress);
+  final token = TextEditingController();
+  String? relayFeedback;
+
+  void connectRelay() {
+    try {
+      configureRelay(relay.text, token.text);
+      token.clear();
+      setState(() => relayFeedback = 'Relay configured for this session.');
+    } on FormatException catch (problem) {
+      setState(() => relayFeedback = problem.message);
+    }
+  }
+
   final fields = {
     for (final k in [
       'title',
@@ -47,6 +61,12 @@ class _TaskEditorState extends State<TaskEditor> {
       setState(() => error = 'Write the homework first.');
       return;
     }
+    if (cloud && text.runes.length > 2000) {
+      setState(() {
+        error = 'This capture is too long for the relay. Shorten it or use local capture.';
+      });
+      return;
+    }
     setState(() {
       busy = true;
       error = null;
@@ -62,12 +82,13 @@ class _TaskEditorState extends State<TaskEditor> {
         message = 'Gemini was unavailable. Review the local draft.';
       }
     }
-    if (mounted)
+    if (mounted) {
       setState(() {
         fill(draft);
         status = message;
         busy = false;
       });
+    }
   }
 
   void save() {
@@ -102,6 +123,8 @@ class _TaskEditorState extends State<TaskEditor> {
   @override
   void dispose() {
     capture.dispose();
+    relay.dispose();
+    token.dispose();
     for (final c in fields.values) {
       c.dispose();
     }
@@ -180,6 +203,27 @@ class _TaskEditorState extends State<TaskEditor> {
                     onPressed: () => parse(false),
                     child: const Text('Review local draft'),
                   ),
+                ExpansionTile(
+                  title: const Text('Gemini relay settings'),
+                  children: [
+                    TextField(
+                      controller: relay,
+                      keyboardType: TextInputType.url,
+                      autocorrect: false,
+                      decoration: const InputDecoration(labelText: 'Relay address', hintText: 'https://…'),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: token,
+                      obscureText: true,
+                      autocorrect: false,
+                      enableSuggestions: false,
+                      decoration: const InputDecoration(labelText: 'Relay access token'),
+                    ),
+                    TextButton(onPressed: busy ? null : connectRelay, child: const Text('Use for this session')),
+                    if (relayFeedback != null) Text(relayFeedback!),
+                  ],
+                ),
               ] else ...[
                 if (status != null)
                   Padding(

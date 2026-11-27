@@ -1,0 +1,16 @@
+name: Exercise Jot downloads
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    uses: ./.github/workflows/package-android.yml
+  ios:
+    uses: ./.github/workflows/package-ios.yml
+  macos:
+    uses: ./.github/workflows/package-macos.yml
+  windows:
+    uses: ./.github/workflows/package-windows.yml

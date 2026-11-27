@@ -1,0 +1,97 @@
+name: Windows desktop download
+on:
+  push:
+    branches: [main, build/platform-downloads]
+    paths:
+      - '.github/workflows/package-windows.yml'
+      - 'lib/**'
+      - 'pubspec.*'
+      - 'assets/**'
+      - 'windows/**'
+      - '.github/scripts/check-db.py'
+      - 'licenses/Lexend-OFL.txt'
+  pull_request:
+    branches: [main, build/platform-downloads]
+    paths:
+      - '.github/workflows/package-windows.yml'
+      - 'lib/**'
+      - 'pubspec.*'
+      - 'assets/**'
+      - 'windows/**'
+      - '.github/scripts/check-db.py'
+      - 'licenses/Lexend-OFL.txt'
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  FLUTTER_SUPPRESS_ANALYTICS: 'true'
+
+jobs:
+  windows:
+    name: Build Windows 10 and 11 x64
+    runs-on: windows-2022
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2
+        with:
+          flutter-version: '3.38.5'
+          channel: stable
+      - name: Resolve locked dependencies
+        run: flutter pub get --enforce-lockfile
+      - name: Compile the Windows desktop app
+        run: flutter build windows --release --no-pub
+      - name: Include the Visual C++ runtime
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $release = "build/windows/x64/runner/Release"
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
+          $vs = & $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+          $crt = Get-ChildItem "$vs/VC/Redist/MSVC/*/x64/Microsoft.VC*.CRT" -Directory | Sort-Object FullName -Descending | Select-Object -First 1
+          if (!$crt) { throw 'Visual C++ redistributable files missing' }
+          Copy-Item "$($crt.FullName)/*.dll" $release -Force
+          foreach ($file in @('jot.exe','flutter_windows.dll','data/app.so','data/icudtl.dat','vcruntime140.dll')) {
+            if (!(Test-Path "$release/$file")) { throw "Missing $file" }
+          }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Jot-Windows-x64
+          path: build/windows/x64/runner/Release/
+          if-no-files-found: error
+          retention-days: 90
+
+  smoke:
+    name: Launch packaged desktop app on windows
+    needs: windows
+    runs-on: windows-2022
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: Jot-Windows-x64
+          path: downloads/Jot-Windows-x64
+      - name: Launch Windows app from unpacked files and verify the database
+        shell: pwsh
+        run: |
+          $path = (Resolve-Path 'downloads/Jot-Windows-x64').Path
+          $process = Start-Process "$path/jot.exe" -WorkingDirectory $path -PassThru
+          try {
+            python .github/scripts/check-db.py "$env:APPDATA"
+            if ($LASTEXITCODE) { throw 'Jot did not open its database' }
+            Start-Sleep 3
+            $process.Refresh()
+            if ($process.HasExited -or !$process.MainWindowHandle) { throw 'Jot did not keep an open window' }
+            Write-Output "Jot window: $($process.MainWindowTitle)"
+          } finally {
+            if (!$process.HasExited) { Stop-Process -Id $process.Id }
+          }

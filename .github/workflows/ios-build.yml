@@ -1,0 +1,44 @@
+name: Compile iOS
+
+on:
+  push:
+    branches: [build/ios-check]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ios:
+    name: iPhone and iPad release build (unsigned)
+    runs-on: macos-15
+    timeout-minutes: 45
+    env:
+      CI: "true"
+      FLUTTER_SUPPRESS_ANALYTICS: "true"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Set up Flutter 3.38.5
+        run: |
+          xcodebuild -version
+          pod --version
+          git clone --depth 1 --branch 3.38.5 https://github.com/flutter/flutter.git "$RUNNER_TEMP/flutter"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/flutter/bin/flutter" --version
+      - name: Resolve dependencies
+        run: flutter pub get --enforce-lockfile
+      - name: Compile iOS and the embedded watch app
+        run: |
+          flutter build ios --release --no-codesign --no-pub
+          test -f build/ios/iphoneos/Runner.app/Runner
+          test -f build/ios/iphoneos/Runner.app/Watch/JotWatch.app/JotWatch
+          ditto -c -k --keepParent build/ios/iphoneos/Runner.app "$RUNNER_TEMP/Jot-iOS-unsigned.zip"
+      - name: Save unsigned app bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: Jot-iOS-unsigned
+          path: ${{ runner.temp }}/Jot-iOS-unsigned.zip
+          if-no-files-found: error
+          retention-days: 7

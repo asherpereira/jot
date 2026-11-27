@@ -18,8 +18,13 @@ test('Friday capture travels through the Gemini response envelope', async () => 
 test('invalid dates, detached times, oversized estimates and extra fields fail', () => {
   assert.ok(validInput(input));
   assert.ok(!validInput({...input, localDate: '2026-02-30'}));
-  for (const changes of [{dueDate:'2026-02-30'}, {dueTime:'17:00', dueDate:null}, {estimateMinutes:300}, {deleteAll:true}]) {
+  for (const changes of [{dueDate:'2026-02-30'}, {dueTime:'17:00', dueDate:null}, {estimateMinutes:300}, {subject:'  '}, {deleteAll:true}]) {
     assert.ok(!validDraft({...example, ...changes}));
   }
   assert.equal(calendar('2026-12-31')[1], '2027-01-01 Friday');
+});
+
+test('draft length limits count Unicode code points', () => {
+  assert.ok(validDraft({...example, title: '📚'.repeat(160)}));
+  assert.ok(!validDraft({...example, title: '📚'.repeat(161)}));
 });

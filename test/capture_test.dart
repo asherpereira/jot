@@ -35,6 +35,64 @@ void main() {
     },
   );
   test(
+    'offline and relay drafts keep whole Unicode characters at the limit',
+    () {
+      final title = '${'a' * 159}📚';
+      final draft = basicCapture('${title}x', DateTime(2026, 11, 25));
+      expect(draft.title, 'A${'a' * 158}📚');
+      final json = {...draft.toJson(), 'title': '📚' * 160};
+      expect(CaptureDraft.fromJson(json).title, json['title']);
+      expect(
+        () => CaptureDraft.fromJson({...json, 'title': '📚' * 161}),
+        throwsFormatException,
+      );
+    },
+  );
+
+  test(
+    'editing keeps existing checks and starts re-added items unchecked',
+    () async {
+      final db = JotStore(NativeDatabase.memory());
+      addTearDown(db.close);
+      const draft = CaptureDraft(
+        title: 'Essay',
+        subtasks: ['Outline', 'Write'],
+        afterCompletion: ['Upload', 'Notify'],
+      );
+      await db.save(draft);
+      final id = (await db.tasks()).single.id;
+      await db.complete(id, true);
+      for (final step in draft.subtasks) {
+        await db.check(id, step, true);
+      }
+      for (final followUp in draft.afterCompletion) {
+        await db.check(id, followUp, true, followUp: true);
+      }
+      await db.save(
+        const CaptureDraft(
+          title: 'Essay',
+          subtasks: ['Write'],
+          afterCompletion: ['Notify'],
+        ),
+        id,
+      );
+      var task = (await db.tasks()).single;
+      expect(task.checked, {'Write'});
+      expect(task.acknowledged, {'Notify'});
+
+      // Simulate obsolete checkmarks left in a database by an earlier version.
+      await db.customStatement(
+        'UPDATE homework SET checked = ?, acknowledged = ? WHERE id = ?',
+        [jsonEncode(draft.subtasks), jsonEncode(draft.afterCompletion), id],
+      );
+      await db.save(draft, id);
+      task = (await db.tasks()).single;
+      expect(task.done, isTrue);
+      expect(task.checked, {'Write'});
+      expect(task.pending, ['Upload']);
+    },
+  );
+  test(
     'a retried watch action creates exactly one task with a durable completion reminder',
     () async {
       final db = JotStore(NativeDatabase.memory());

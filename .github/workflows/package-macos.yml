@@ -40,8 +40,11 @@ jobs:
           test -x "$app/Contents/MacOS/Jot"
           for binary in "$app/Contents/MacOS/Jot" "$app/Contents/Frameworks/App.framework/App" "$app/Contents/Frameworks/FlutterMacOS.framework/FlutterMacOS"; do
             lipo -archs "$binary"
-            lipo -verify_arch arm64 x86_64 "$binary"
+            lipo "$binary" -verify_arch arm64 x86_64
           done
+          if ! codesign --verify --deep --strict "$app"; then
+            codesign --force --deep --sign - --entitlements macos/Runner/Release.entitlements "$app"
+          fi
           codesign --verify --deep --strict "$app"
           mkdir -p dist
           ditto -c -k --sequesterRsrc --keepParent "$app" dist/Jot-macOS.zip

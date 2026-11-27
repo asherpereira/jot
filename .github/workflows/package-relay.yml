@@ -1,7 +1,13 @@
 name: Gemini relay download
 on:
   push:
-    branches: [build/platform-downloads]
+    branches: [main, build/platform-downloads]
+    paths:
+      - '.github/workflows/package-relay.yml'
+      - 'server/**'
+      - 'contracts/**'
+  pull_request:
+    branches: [main, build/platform-downloads]
     paths:
       - '.github/workflows/package-relay.yml'
       - 'server/**'

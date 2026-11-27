@@ -1,7 +1,7 @@
 name: Jot capture and storage tests
 on:
   push:
-    branches: [build/platform-downloads]
+    branches: [main, build/platform-downloads]
     paths:
       - '.github/workflows/test-capture.yml'
       - 'test/**'
@@ -9,6 +9,17 @@ on:
       - 'contracts/**'
       - 'server/**'
       - 'pubspec.*'
+      - 'analysis_options.yaml'
+  pull_request:
+    branches: [main, build/platform-downloads]
+    paths:
+      - '.github/workflows/test-capture.yml'
+      - 'test/**'
+      - 'lib/**'
+      - 'contracts/**'
+      - 'server/**'
+      - 'pubspec.*'
+      - 'analysis_options.yaml'
   workflow_dispatch:
 permissions:
   contents: read
@@ -26,6 +37,7 @@ jobs:
           flutter-version: '3.38.5'
           channel: stable
       - run: flutter pub get --enforce-lockfile
+      - run: flutter analyze --no-pub
       - run: flutter test --no-pub --reporter expanded
       - uses: actions/setup-node@v4
         with:

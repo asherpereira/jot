@@ -1,13 +1,26 @@
 name: Mac desktop download
 on:
   push:
-    branches: [build/platform-downloads]
+    branches: [main, build/platform-downloads]
     paths:
       - '.github/workflows/package-macos.yml'
       - 'lib/**'
       - 'pubspec.*'
       - 'assets/**'
       - 'macos/**'
+      - '.github/scripts/check-db.py'
+      - 'licenses/Lexend-OFL.txt'
+  pull_request:
+    branches: [main, build/platform-downloads]
+    paths:
+      - '.github/workflows/package-macos.yml'
+      - 'lib/**'
+      - 'pubspec.*'
+      - 'assets/**'
+      - 'macos/**'
+      - '.github/scripts/check-db.py'
+      - 'licenses/Lexend-OFL.txt'
+  workflow_call:
   workflow_dispatch:
 
 permissions:
@@ -54,3 +67,36 @@ jobs:
           path: dist/Jot-macOS.zip
           if-no-files-found: error
           retention-days: 90
+
+  smoke:
+    name: Launch packaged desktop app on macos
+    needs: macos
+    runs-on: macos-15
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: Jot-macOS
+          path: downloads/Jot-macOS
+      - name: Launch the Mac bundle and verify the database
+        run: |
+          ditto -x -k downloads/Jot-macOS/Jot-macOS.zip unpacked
+          SCANNED=0
+          while IFS= read -r binary; do
+            if file -b "$binary" | grep -q 'Mach-O'; then
+              lipo "$binary" -verify_arch x86_64 arm64
+              SCANNED=$((SCANNED+1))
+            fi
+          done < <(find unpacked/Jot.app -type f)
+          test "$SCANNED" -ge 3
+          echo "Verified both architectures in $SCANNED Mach-O files"
+          codesign --verify --deep --strict unpacked/Jot.app
+          unpacked/Jot.app/Contents/MacOS/Jot > "$RUNNER_TEMP/jot-mac.log" 2>&1 &
+          pid=$!
+          trap 'cat "$RUNNER_TEMP/jot-mac.log"; kill "$pid" 2>/dev/null || true' EXIT
+          python3 .github/scripts/check-db.py "$HOME/Library/Containers/au.com.asherpereira.jot"
+          sleep 3
+          kill -0 "$pid"

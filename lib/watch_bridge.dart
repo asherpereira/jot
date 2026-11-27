@@ -1,16 +1,19 @@
 import 'dart:convert';
-import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'store.dart';
 
 class WatchBridge {
   final _channel = const MethodChannel('jot/watch');
-  bool get supported => Platform.isIOS || Platform.isAndroid;
+  bool get supported =>
+      defaultTargetPlatform == TargetPlatform.iOS ||
+      defaultTargetPlatform == TargetPlatform.android;
   void listen(Future<void> Function() refresh) {
-    if (supported)
+    if (supported) {
       _channel.setMethodCallHandler((call) async {
         if (call.method == 'changed') await refresh();
       });
+    }
   }
 
   void dispose() {
@@ -19,11 +22,20 @@ class WatchBridge {
 
   Future<void> receive(JotStore store) async {
     if (!supported) return;
-    final values = await _channel.invokeListMethod<String>('pending') ?? [];
-    for (final json in values) {
-      final action = jsonDecode(json) as Map<String, dynamic>;
-      await store.applyWatch(action);
-      await _channel.invokeMethod<void>('ack', action['id']);
+    final inbox =
+        await _channel.invokeMapMethod<String, String?>('pending') ?? {};
+    for (final entry in inbox.entries) {
+      try {
+        final action = jsonDecode(entry.value ?? '');
+        if (action is! Map<String, dynamic> || action['id'] != entry.key) {
+          throw const FormatException('Invalid watch envelope');
+        }
+        await store.applyWatch(action);
+      } on FormatException {
+        // Retrying an invalid payload would block the rest of the inbox.
+      }
+      // Acknowledge by transport ID. Database and channel failures still retry.
+      await _channel.invokeMethod<void>('ack', entry.key);
     }
   }
 

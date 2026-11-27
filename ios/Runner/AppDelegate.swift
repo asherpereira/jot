@@ -20,7 +20,7 @@ import WatchConnectivity
         guard let self else { result(nil); return }
         var inbox = UserDefaults.standard.dictionary(forKey: self.inboxKey) as? [String: String] ?? [:]
         switch call.method {
-        case "pending": result(Array(inbox.values))
+        case "pending": result(inbox)
         case "ack":
           if let id = call.arguments as? String {
             inbox.removeValue(forKey: id)

@@ -1,7 +1,7 @@
 name: iPhone iPad and Apple Watch downloads
 on:
   push:
-    branches: [build/platform-downloads]
+    branches: [main, build/platform-downloads]
     paths:
       - '.github/workflows/package-ios.yml'
       - 'lib/**'
@@ -9,6 +9,22 @@ on:
       - 'assets/**'
       - 'ios/**'
       - 'watchos/**'
+      - '.github/scripts/check-db.py'
+      - '.github/scripts/simulator-smoke.py'
+      - 'licenses/Lexend-OFL.txt'
+  pull_request:
+    branches: [main, build/platform-downloads]
+    paths:
+      - '.github/workflows/package-ios.yml'
+      - 'lib/**'
+      - 'pubspec.*'
+      - 'assets/**'
+      - 'ios/**'
+      - 'watchos/**'
+      - '.github/scripts/check-db.py'
+      - '.github/scripts/simulator-smoke.py'
+      - 'licenses/Lexend-OFL.txt'
+  workflow_call:
   workflow_dispatch:
 
 permissions:
@@ -87,3 +103,30 @@ jobs:
           path: dist/Jot-watchOS-Simulator.zip
           if-no-files-found: error
           retention-days: 90
+
+  apple_simulator:
+    needs: simulator
+    name: Launch packaged app in ${{ matrix.platform }} Simulator
+    runs-on: macos-15
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {platform: iOS, artifact: Jot-iOS-Simulator}
+          - {platform: watchOS, artifact: Jot-watchOS-Simulator}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: downloads/${{ matrix.artifact }}
+      - run: python3 .github/scripts/simulator-smoke.py ${{ matrix.platform }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Jot-smoke-${{ matrix.platform }}
+          path: proof/
+          if-no-files-found: ignore

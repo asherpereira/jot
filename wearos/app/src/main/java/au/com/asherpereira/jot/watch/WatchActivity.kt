@@ -52,7 +52,11 @@ class WatchActivity : ComponentActivity(), DataClient.OnDataChangedListener {
                     }
                     item { Text("Capture", style = MaterialTheme.typography.title3) }
                     item {
-                        BasicTextField(value = text, onValueChange = { text = it.take(2000) },
+                        BasicTextField(value = text, onValueChange = { value ->
+                            text = if (value.codePointCount(0, value.length) > 2000) {
+                                value.substring(0, value.offsetByCodePoints(0, 2000))
+                            } else value
+                        },
                             modifier = Modifier.fillMaxWidth(.88f).background(Color.DarkGray).padding(10.dp),
                             textStyle = MaterialTheme.typography.body2.copy(color = Color.White),
                             cursorBrush = SolidColor(Color.White),

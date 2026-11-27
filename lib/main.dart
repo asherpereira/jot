@@ -158,15 +158,18 @@ class _DeskState extends State<Desk> with WidgetsBindingObserver {
             await bridge.publish(updated);
           } on PlatformException {
             /* The next resume retries the durable watch inbox. */
+          } on MissingPluginException {
+            /* Local homework is available without a watch bridge. */
           }
         }
       } while (mounted && refreshAgain);
     } catch (_) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           failure = 'Your homework could not be loaded.';
           loading = false;
         });
+      }
     } finally {
       refreshing = false;
     }
@@ -180,10 +183,11 @@ class _DeskState extends State<Desk> with WidgetsBindingObserver {
       setState(() => tasks = updated);
       unawaited(refresh());
     } catch (_) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Could not save. Please try again.')),
         );
+      }
     }
   }
 
@@ -213,10 +217,11 @@ class _DeskState extends State<Desk> with WidgetsBindingObserver {
         ),
       );
     } catch (_) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Could not delete. Please try again.')),
         );
+      }
     }
   }
 
@@ -483,10 +488,11 @@ class _DeskState extends State<Desk> with WidgetsBindingObserver {
 
   Widget content(bool split) {
     if (loading) return const Center(child: CircularProgressIndicator());
-    if (failure != null)
+    if (failure != null) {
       return Center(
         child: TextButton(onPressed: refresh, child: Text('$failure Retry')),
       );
+    }
     final subjects =
         tasks.map((t) => t.draft.subject ?? 'Unassigned').toSet().toList()
           ..sort();

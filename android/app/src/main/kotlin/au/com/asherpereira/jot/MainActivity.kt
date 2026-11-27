@@ -19,9 +19,12 @@ class MainActivity : FlutterActivity(), DataClient.OnDataChangedListener {
                 "pending" -> data.getDataItems(Uri.parse("wear://*$actionPrefix"), DataClient.FILTER_PREFIX)
                     .addOnSuccessListener { buffer ->
                         try {
-                            result.success(buffer.mapNotNull { item ->
-                                DataMapItem.fromDataItem(item).dataMap.getString("action")
-                            })
+                            val inbox = mutableMapOf<String, String?>()
+                            for (item in buffer) {
+                                val id = item.uri.lastPathSegment ?: continue
+                                inbox[id] = DataMapItem.fromDataItem(item).dataMap.getString("action")
+                            }
+                            result.success(inbox)
                         } finally { buffer.release() }
                     }.addOnFailureListener { result.error("wear_unavailable", "Watch unavailable", null) }
                 "ack" -> {

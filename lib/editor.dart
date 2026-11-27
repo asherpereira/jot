@@ -61,6 +61,12 @@ class _TaskEditorState extends State<TaskEditor> {
       setState(() => error = 'Write the homework first.');
       return;
     }
+    if (cloud && text.runes.length > 2000) {
+      setState(() {
+        error = 'This capture is too long for the relay. Shorten it or use local capture.';
+      });
+      return;
+    }
     setState(() {
       busy = true;
       error = null;
@@ -76,12 +82,13 @@ class _TaskEditorState extends State<TaskEditor> {
         message = 'Gemini was unavailable. Review the local draft.';
       }
     }
-    if (mounted)
+    if (mounted) {
       setState(() {
         fill(draft);
         status = message;
         busy = false;
       });
+    }
   }
 
   void save() {

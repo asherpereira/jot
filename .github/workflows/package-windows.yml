@@ -1,13 +1,26 @@
 name: Windows desktop download
 on:
   push:
-    branches: [build/platform-downloads]
+    branches: [main, build/platform-downloads]
     paths:
       - '.github/workflows/package-windows.yml'
       - 'lib/**'
       - 'pubspec.*'
       - 'assets/**'
       - 'windows/**'
+      - '.github/scripts/check-db.py'
+      - 'licenses/Lexend-OFL.txt'
+  pull_request:
+    branches: [main, build/platform-downloads]
+    paths:
+      - '.github/workflows/package-windows.yml'
+      - 'lib/**'
+      - 'pubspec.*'
+      - 'assets/**'
+      - 'windows/**'
+      - '.github/scripts/check-db.py'
+      - 'licenses/Lexend-OFL.txt'
+  workflow_call:
   workflow_dispatch:
 
 permissions:
@@ -53,3 +66,32 @@ jobs:
           path: build/windows/x64/runner/Release/
           if-no-files-found: error
           retention-days: 90
+
+  smoke:
+    name: Launch packaged desktop app on windows
+    needs: windows
+    runs-on: windows-2022
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: Jot-Windows-x64
+          path: downloads/Jot-Windows-x64
+      - name: Launch Windows app from unpacked files and verify the database
+        shell: pwsh
+        run: |
+          $path = (Resolve-Path 'downloads/Jot-Windows-x64').Path
+          $process = Start-Process "$path/jot.exe" -WorkingDirectory $path -PassThru
+          try {
+            python .github/scripts/check-db.py "$env:APPDATA"
+            if ($LASTEXITCODE) { throw 'Jot did not open its database' }
+            Start-Sleep 3
+            $process.Refresh()
+            if ($process.HasExited -or !$process.MainWindowHandle) { throw 'Jot did not keep an open window' }
+            Write-Output "Jot window: $($process.MainWindowTitle)"
+          } finally {
+            if (!$process.HasExited) { Stop-Process -Id $process.Id }
+          }

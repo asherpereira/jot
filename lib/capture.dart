@@ -53,12 +53,16 @@ class CaptureDraft {
         throw FormatException('Check the $field field.');
     if (value.length != fields.length ||
         !value.keys.toSet().containsAll(fields) ||
-        value['version'] != 1)
+        value['version'] != 1) {
       invalid('capture version');
+    }
     String string(String k, int max, {bool empty = false}) {
       final v = value[k];
-      if (v is! String || (!empty && v.trim().isEmpty) || v.length > max)
+      if (v is! String ||
+          (!empty && v.trim().isEmpty) ||
+          v.runes.length > max) {
         invalid(k);
+      }
       return v.trim();
     }
 
@@ -66,8 +70,11 @@ class CaptureDraft {
       final v = value[k];
       if (v is! List ||
           v.length > max ||
-          v.any((s) => s is! String || s.trim().isEmpty || s.length > 160))
+          v.any(
+            (s) => s is! String || s.trim().isEmpty || s.runes.length > 160,
+          )) {
         invalid(k);
+      }
       return List<String>.from(v.map((s) => (s as String).trim()));
     }
 
@@ -76,17 +83,20 @@ class CaptureDraft {
         (date is! String ||
             !RegExp(r'^\d{4}-\d\d-\d\d$').hasMatch(date) ||
             DateTime.tryParse(date) == null ||
-            dateKey(DateTime.parse(date)) != date))
+            dateKey(DateTime.parse(date)) != date)) {
       invalid('due date');
+    }
     final time = value['dueTime'];
     if (time != null &&
         (date == null ||
             time is! String ||
-            !RegExp(r'^([01]\d|2[0-3]):[0-5]\d$').hasMatch(time)))
+            !RegExp(r'^([01]\d|2[0-3]):[0-5]\d$').hasMatch(time))) {
       invalid('due time');
+    }
     final minutes = value['estimateMinutes'];
-    if (minutes != null && (minutes is! int || minutes < 5 || minutes > 240))
+    if (minutes != null && (minutes is! int || minutes < 5 || minutes > 240)) {
       invalid('estimate (5–240 minutes)');
+    }
     if (!['normal', 'high'].contains(value['priority'])) invalid('priority');
     return CaptureDraft(
       title: string('title', 160),
@@ -117,6 +127,10 @@ const _subjects = [
   'Computing',
 ];
 const _weekdays = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+
+// JSON Schema string limits count Unicode code points.
+String _limit(String text, int max) =>
+    String.fromCharCodes(text.runes.take(max));
 
 CaptureDraft basicCapture(String input, DateTime now) {
   final text = input.trim();
@@ -185,21 +199,14 @@ CaptureDraft basicCapture(String input, DateTime now) {
   title = title[0].toUpperCase() + title.substring(1);
   final follow = reminder?[1]?.trim();
   return CaptureDraft(
-    title: title.length > 160 ? title.substring(0, 160) : title,
+    title: _limit(title, 160),
     subject: subject,
     dueDate: due == null ? null : dateKey(due),
     estimateMinutes: minutes,
-    notes: text.length > 160
-        ? text.substring(0, text.length.clamp(0, 1600).toInt())
-        : '',
+    notes: text.runes.length > 160 ? _limit(text, 1600) : '',
     afterCompletion: follow == null || follow.isEmpty
         ? []
-        : [
-            (follow[0].toUpperCase() + follow.substring(1)).substring(
-              0,
-              follow.length.clamp(0, 160).toInt(),
-            ),
-          ],
+        : [_limit(follow[0].toUpperCase() + follow.substring(1), 160)],
   );
 }
 
@@ -211,11 +218,17 @@ bool get cloudConfigured => relayAddress.isNotEmpty && _relayToken.isNotEmpty;
 Uri _relayEndpoint(String address) {
   final uri = Uri.tryParse(address);
   const loopback = {'localhost', '127.0.0.1', '10.0.2.2', '::1'};
-  if (uri == null || uri.host.isEmpty || uri.userInfo.isNotEmpty ||
-      uri.hasQuery || uri.hasFragment ||
+  if (uri == null ||
+      uri.host.isEmpty ||
+      uri.userInfo.isNotEmpty ||
+      uri.hasQuery ||
+      uri.hasFragment ||
       (uri.path.isNotEmpty && uri.path != '/') ||
-      !(uri.scheme == 'https' || (uri.scheme == 'http' && loopback.contains(uri.host)))) {
-    throw const FormatException('Enter the HTTPS address of your relay, or a local loopback address.');
+      !(uri.scheme == 'https' ||
+          (uri.scheme == 'http' && loopback.contains(uri.host)))) {
+    throw const FormatException(
+      'Enter the HTTPS address of your relay, or a local loopback address.',
+    );
   }
   return uri.resolve('/v1/capture');
 }
@@ -240,17 +253,21 @@ Future<CaptureDraft> cloudCapture(String input, DateTime day) async {
     req.headers.set(HttpHeaders.authorizationHeader, 'Bearer $token');
     req.write(jsonEncode({'text': input, 'localDate': dateKey(day)}));
     final res = await req.close();
-    if (res.statusCode != 200)
+    if (res.statusCode != 200) {
       throw HttpException('Capture relay returned ${res.statusCode}.');
+    }
     final bytes = <int>[];
     await for (final part in res) {
       bytes.addAll(part);
-      if (bytes.length > 65536)
+      if (bytes.length > 65536) {
         throw const FormatException('Capture too large.');
+      }
     }
-    return CaptureDraft.fromJson(
-      jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>,
-    );
+    final draft = jsonDecode(utf8.decode(bytes));
+    if (draft is! Map<String, dynamic>) {
+      throw const FormatException('Expected a homework draft.');
+    }
+    return CaptureDraft.fromJson(draft);
   }
 
   try {

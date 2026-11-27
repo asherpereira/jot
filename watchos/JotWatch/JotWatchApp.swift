@@ -98,7 +98,8 @@ struct JotWatchApp: App {
           Section("Capture") {
             TextField("Homework", text: $capture)
             Button("Save to iPhone") {
-              let text = String(capture.trimmingCharacters(in: .whitespacesAndNewlines).prefix(2000))
+              let trimmed = capture.trimmingCharacters(in: .whitespacesAndNewlines)
+              let text = String(trimmed.unicodeScalars.prefix(2000))
               inbox.send(["kind": "capture", "text": text])
               capture = ""
             }.disabled(capture.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)

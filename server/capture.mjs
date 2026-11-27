@@ -19,6 +19,7 @@ export function validInput(value) {
 
 export function validDraft(draft) {
   return validate(draft) && draft.title.trim().length > 0 &&
+    (draft.subject === null || draft.subject.trim().length > 0) &&
     (draft.dueTime === null || draft.dueDate !== null) &&
     [...draft.subtasks, ...draft.afterCompletion].every(item => item.trim().length > 0);
 }

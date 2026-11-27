@@ -24,8 +24,14 @@ void main() {
     final title = find.widgetWithText(TextField, 'Homework');
     await tester.enterText(title, 'Finish maths exercises');
     final save = find.text('Save homework');
-    await tester.scrollUntilVisible(save, 240, scrollable: find.byType(Scrollable).first);
-    await tester.tap(save);
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pumpAndSettle();
+    for (int i = 0; i < 12 && save.hitTestable().evaluate().isEmpty; i++) {
+      await tester.drag(find.byType(ListView), const Offset(0, -200));
+      await tester.pumpAndSettle();
+    }
+    expect(save.hitTestable(), findsOneWidget);
+    await tester.tap(save.hitTestable());
     await tester.pumpAndSettle();
     expect(result?.title, 'Finish maths exercises');
     expect(result?.subject, 'Maths');

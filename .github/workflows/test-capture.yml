@@ -1,0 +1,38 @@
+name: Jot capture and storage tests
+on:
+  push:
+    branches: [build/platform-downloads]
+    paths:
+      - '.github/workflows/test-capture.yml'
+      - 'test/**'
+      - 'lib/**'
+      - 'contracts/**'
+      - 'server/**'
+      - 'pubspec.*'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  capture:
+    name: Capture, persistence and relay regression tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2
+        with:
+          flutter-version: '3.38.5'
+          channel: stable
+      - run: flutter pub get --enforce-lockfile
+      - run: flutter test --no-pub --reporter expanded
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check the Gemini contract and mocked provider
+        working-directory: server
+        run: |
+          npm ci --ignore-scripts
+          npm test
+

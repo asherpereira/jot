@@ -47,11 +47,28 @@ def tap(node):
 
 apk = next((pathlib.Path("downloads") / artifact).glob("*.apk"))
 adb("install", "-r", str(apk))
+if wear:
+    adb("shell", "settings", "put", "global", "stay_on_while_plugged_in", "7")
+    adb("shell", "settings", "put", "system", "screen_off_timeout", "1800000")
+    adb("shell", "input", "keyevent", "KEYCODE_WAKEUP")
+    adb("shell", "wm", "dismiss-keyguard")
+    adb("shell", "am", "force-stop", package)
 print(adb("shell", "am", "start", "-W", "-n", f"{package}/{activity}"), flush=True)
 time.sleep(5)
 print("Jot PID", adb("shell", "pidof", package), flush=True)
 if wear:
-    find("Up next")
+    for attempt in range(3):
+        adb("shell", "input", "keyevent", "KEYCODE_WAKEUP")
+        adb("shell", "wm", "dismiss-keyguard")
+        adb("shell", "am", "start", "-W", "-n", f"{package}/{activity}")
+        try:
+            find("Up next")
+            break
+        except RuntimeError:
+            if attempt == 2:
+                print(adb("shell", "dumpsys", "activity", "activities")[-16000:])
+                print(adb("logcat", "-d", "-s", "AndroidRuntime:E")[-8000:])
+                raise
 else:
     tap(find("Capture"))
     tap(find(edit=True))

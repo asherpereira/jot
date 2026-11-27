@@ -203,23 +203,41 @@ CaptureDraft basicCapture(String input, DateTime now) {
   );
 }
 
-const relayAddress = String.fromEnvironment('JOT_RELAY_URL');
-const _relayToken = String.fromEnvironment('JOT_ACCESS_TOKEN');
+String relayAddress = const String.fromEnvironment('JOT_RELAY_URL');
+String _relayToken = const String.fromEnvironment('JOT_ACCESS_TOKEN');
+
 bool get cloudConfigured => relayAddress.isNotEmpty && _relayToken.isNotEmpty;
 
-Future<CaptureDraft> cloudCapture(String input, DateTime day) async {
-  final uri = Uri.parse(relayAddress).resolve('/v1/capture');
-  if (uri.scheme != 'https' &&
-      !(uri.scheme == 'http' &&
-          ['localhost', '127.0.0.1', '10.0.2.2', '::1'].contains(uri.host))) {
-    throw const FormatException('Use an HTTPS relay or local loopback.');
+Uri _relayEndpoint(String address) {
+  final uri = Uri.tryParse(address);
+  const loopback = {'localhost', '127.0.0.1', '10.0.2.2', '::1'};
+  if (uri == null || uri.host.isEmpty || uri.userInfo.isNotEmpty ||
+      uri.hasQuery || uri.hasFragment ||
+      (uri.path.isNotEmpty && uri.path != '/') ||
+      !(uri.scheme == 'https' || (uri.scheme == 'http' && loopback.contains(uri.host)))) {
+    throw const FormatException('Enter the HTTPS address of your relay, or a local loopback address.');
   }
+  return uri.resolve('/v1/capture');
+}
+
+void configureRelay(String address, String token) {
+  _relayEndpoint(address.trim());
+  if (token.trim().isEmpty || token.contains(RegExp(r'[\r\n]'))) {
+    throw const FormatException('Enter the access token from your relay.');
+  }
+  relayAddress = address.trim();
+  _relayToken = token.trim();
+}
+
+Future<CaptureDraft> cloudCapture(String input, DateTime day) async {
+  final uri = _relayEndpoint(relayAddress);
+  final token = _relayToken;
   final client = HttpClient()..connectionTimeout = const Duration(seconds: 5);
   Future<CaptureDraft> send() async {
     final req = await client.postUrl(uri);
     req.followRedirects = false;
     req.headers.contentType = ContentType.json;
-    req.headers.set(HttpHeaders.authorizationHeader, 'Bearer $_relayToken');
+    req.headers.set(HttpHeaders.authorizationHeader, 'Bearer $token');
     req.write(jsonEncode({'text': input, 'localDate': dateKey(day)}));
     final res = await req.close();
     if (res.statusCode != 200)

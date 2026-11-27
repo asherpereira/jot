@@ -1,0 +1,89 @@
+name: iPhone iPad and Apple Watch downloads
+on:
+  push:
+    branches: [build/platform-downloads]
+    paths:
+      - '.github/workflows/package-ios.yml'
+      - 'lib/**'
+      - 'pubspec.*'
+      - 'assets/**'
+      - 'ios/**'
+      - 'watchos/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  FLUTTER_SUPPRESS_ANALYTICS: 'true'
+
+jobs:
+  device:
+    name: Build iPhone and Apple Watch for devices
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2
+        with:
+          flutter-version: '3.38.5'
+          channel: stable
+      - name: Resolve locked dependencies
+        run: flutter pub get --enforce-lockfile
+      - name: Compile unsigned device apps and package the IPA
+        run: |
+          flutter build ios --release --no-codesign --no-pub
+          app="build/ios/iphoneos/Runner.app"
+          test -x "$app/Runner"
+          test -x "$app/Watch/JotWatch.app/JotWatch"
+          mkdir -p dist "$RUNNER_TEMP/jot-ipa/Payload"
+          ditto "$app" "$RUNNER_TEMP/jot-ipa/Payload/Jot.app"
+          ditto -c -k --keepParent "$RUNNER_TEMP/jot-ipa/Payload" dist/Jot-iOS-unsigned.ipa
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Jot-iOS-device-unsigned
+          path: dist/Jot-iOS-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 90
+
+  simulator:
+    name: Build iOS and watchOS Simulator apps
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2
+        with:
+          flutter-version: '3.38.5'
+          channel: stable
+      - name: Resolve locked dependencies
+        run: flutter pub get --enforce-lockfile
+      - name: Compile simulator apps and package both bundles
+        run: |
+          flutter build ios --simulator --debug --no-pub
+          app="build/ios/iphonesimulator/Runner.app"
+          test -x "$app/Runner"
+          test -x "$app/Watch/JotWatch.app/JotWatch"
+          lipo -archs "$app/Runner"
+          lipo -archs "$app/Watch/JotWatch.app/JotWatch"
+          mkdir -p dist
+          ditto -c -k --keepParent "$app" dist/Jot-iOS-Simulator.zip
+          ditto -c -k --keepParent "$app/Watch/JotWatch.app" dist/Jot-watchOS-Simulator.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Jot-iOS-Simulator
+          path: dist/Jot-iOS-Simulator.zip
+          if-no-files-found: error
+          retention-days: 90
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Jot-watchOS-Simulator
+          path: dist/Jot-watchOS-Simulator.zip
+          if-no-files-found: error
+          retention-days: 90

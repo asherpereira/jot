@@ -53,15 +53,19 @@ The [capture relay](server) holds your Gemini Developer API key and requests JSO
 1. Install Node.js 22 or later. In `server/`, run `npm ci` and copy `.env.example` to `.env`.
 2. Set `GEMINI_API_KEY` to your Google AI Studio API key. Set `JOT_ACCESS_TOKEN` to your own random relay token. Generate one with `node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"`. The relay model is configurable with `GEMINI_MODEL`.
 3. Run `npm start` in `server/`. The relay listens on port 8787 on your computer's loopback interface.
-4. In the repository root, copy `jot.local.example.json` to `jot.local.json`. Fill in the **relay token** and the address from the table. Keep the **Gemini key** in the relay's environment.
-5. From the root, run `flutter run -d <device-id> --dart-define-from-file=jot.local.json`. For an Xcode launch, append the same define flag to the relevant `flutter build ... --config-only` command above, then open the workspace.
+4. In a downloaded app, open **Capture → Gemini relay settings**, enter the relay address and **relay access token**, and choose **Use for this session**. You can now use **Parse with Gemini**.
+
+For a source build with settings supplied at compile time:
+
+1. In the repository root, copy `jot.local.example.json` to `jot.local.json`. Fill in the **relay token** and the address from the table. Keep the **Gemini key** in the relay's environment.
+2. From the root, run `flutter run -d <device-id> --dart-define-from-file=jot.local.json`. For an Xcode launch, append the same define flag to the relevant `flutter build ... --config-only` command above, then open the workspace.
 
 | Destination | Relay address |
 | --- | --- |
 | macOS or Windows app, relay running on that computer | `http://localhost:8787` |
 | iOS Simulator, relay running on its Mac | `http://localhost:8787` |
-| Android Studio emulator, relay on its host | `http://10.0.2.2:8787` in a debug build |
-| Android phone over USB | Run `adb reverse tcp:8787 tcp:8787`, then use `http://localhost:8787` in a debug build. |
+| Android Studio emulator, relay on its host | `http://10.0.2.2:8787` |
+| Android phone over USB | Run `adb reverse tcp:8787 tcp:8787`, then use `http://localhost:8787`. |
 | Physical iPhone or a device on another computer | Use an HTTPS endpoint that forwards to your relay and is reachable from that device. |
 
 The access token is for personal development builds. Use per-user authentication and quotas before distributing a client connected to a shared relay. Google manages model availability and billing against the key you configure. [Gemini API keys](https://ai.google.dev/gemini-api/docs/api-key) · [Structured output](https://ai.google.dev/gemini-api/docs/structured-output)

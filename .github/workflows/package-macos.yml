@@ -1,0 +1,53 @@
+name: Mac desktop download
+on:
+  push:
+    branches: [build/platform-downloads]
+    paths:
+      - '.github/workflows/package-macos.yml'
+      - 'lib/**'
+      - 'pubspec.*'
+      - 'assets/**'
+      - 'macos/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  FLUTTER_SUPPRESS_ANALYTICS: 'true'
+
+jobs:
+  macos:
+    name: Build the Mac desktop app
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2
+        with:
+          flutter-version: '3.38.5'
+          channel: stable
+      - name: Resolve locked dependencies
+        run: flutter pub get --enforce-lockfile
+      - name: Compile the release app
+        run: flutter build macos --release --no-pub
+      - name: Package the Mac download
+        run: |
+          app="build/macos/Build/Products/Release/Jot.app"
+          test -x "$app/Contents/MacOS/Jot"
+          for binary in "$app/Contents/MacOS/Jot" "$app/Contents/Frameworks/App.framework/App" "$app/Contents/Frameworks/FlutterMacOS.framework/FlutterMacOS"; do
+            lipo -archs "$binary"
+            lipo -verify_arch arm64 x86_64 "$binary"
+          done
+          codesign --verify --deep --strict "$app"
+          mkdir -p dist
+          ditto -c -k --sequesterRsrc --keepParent "$app" dist/Jot-macOS.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Jot-macOS
+          path: dist/Jot-macOS.zip
+          if-no-files-found: error
+          retention-days: 90

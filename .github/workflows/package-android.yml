@@ -1,0 +1,72 @@
+name: Android and Wear OS downloads
+on:
+  push:
+    branches: [build/platform-downloads]
+    paths:
+      - '.github/workflows/package-android.yml'
+      - 'lib/**'
+      - 'pubspec.*'
+      - 'assets/**'
+      - 'android/**'
+      - 'wearos/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  FLUTTER_SUPPRESS_ANALYTICS: 'true'
+
+jobs:
+  android:
+    name: Build the paired Android APKs
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2
+        with:
+          flutter-version: '3.38.5'
+          channel: stable
+      - name: Resolve locked dependencies
+        run: flutter pub get --enforce-lockfile
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Select Java and prepare Gradle
+        run: |
+          flutter config --jdk-dir="$JAVA_HOME"
+          mkdir -p "$HOME/.gradle" dist
+          printf 'org.gradle.jvmargs=-Xmx3g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8\norg.gradle.workers.max=3\n' >> "$HOME/.gradle/gradle.properties"
+      - name: Build Wear OS APK
+        run: |
+          ./wearos/gradlew -p wearos :app:assembleDebug --no-daemon
+          cp wearos/app/build/outputs/apk/debug/app-debug.apk dist/Jot-WearOS.apk
+      - name: Build Android phone and tablet APK
+        run: |
+          flutter build apk --release --no-pub
+          cp build/app/outputs/flutter-apk/app-release.apk dist/Jot-Android.apk
+      - name: Verify the phone and watch have matching signing certificates
+        run: |
+          tools=$(find "$ANDROID_HOME/build-tools" -name apksigner | sort -V | tail -1)
+          for apk in dist/*.apk; do
+            "$tools" verify --print-certs "$apk" > "$apk.cert"
+            grep 'certificate SHA-256 digest:' "$apk.cert"
+          done
+          diff <(grep 'certificate SHA-256 digest:' dist/Jot-Android.apk.cert) <(grep 'certificate SHA-256 digest:' dist/Jot-WearOS.apk.cert)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Jot-Android
+          path: dist/Jot-Android.apk
+          if-no-files-found: error
+          retention-days: 90
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Jot-WearOS
+          path: dist/Jot-WearOS.apk
+          if-no-files-found: error
+          retention-days: 90

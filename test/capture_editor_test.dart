@@ -23,7 +23,7 @@ void main() {
     await tester.pumpAndSettle();
     final title = find.widgetWithText(TextField, 'Homework');
     await tester.enterText(title, 'Finish maths exercises');
-    final save = find.widgetWithText(FilledButton, 'Save homework');
+    final save = find.text('Save homework');
     await tester.scrollUntilVisible(save, 240, scrollable: find.byType(Scrollable).first);
     await tester.tap(save);
     await tester.pumpAndSettle();
